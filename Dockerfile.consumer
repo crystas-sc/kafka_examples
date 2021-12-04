@@ -1,0 +1,6 @@
+FROM bitnami/python
+RUN pip install confluent-kafka
+WORKDIR /app
+COPY consumer.py /app/consumer.py
+CMD ["/app/consumer.py"]
+ENTRYPOINT ["python","-u"]

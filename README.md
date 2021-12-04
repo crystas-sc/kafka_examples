@@ -1,0 +1,2 @@
+# An example to demostrate starvation of consumers
+This is an example to demostrate that if the number of consumers are more than the number of kafka partitions then number of consumer which are above the number of partitions will starve for messages and will be idle since Kafka partition cannot be shared by more than one consumer

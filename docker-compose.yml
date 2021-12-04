@@ -1,0 +1,62 @@
+version: "3"
+services:
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    restart: "no"
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:9092"
+      bootstrap.servers: kafka:9092
+      JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
+    depends_on:
+      - "kafka"
+  
+  zookeeper:
+      image: confluentinc/cp-zookeeper
+      container_name: zookeeper
+      hostname: zookeeper
+      ports:
+        - "2181:2181"
+      environment:
+        ZOOKEEPER_CLIENT_PORT: 2181
+        ZOOKEEPER_TICK_TIME: 2000
+      restart: always
+
+  kafka:
+      image: confluentinc/cp-kafka
+      hostname: kafka
+      container_name: kafka
+      depends_on:
+        - zookeeper
+      ports:
+        - '9092:9092'
+        - '9094:9094'
+      environment:
+        KAFKA_BROKER_ID: 1
+        KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+        KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+        KAFKA_LISTENERS: "INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094"
+        KAFKA_ADVERTISED_LISTENERS: "INTERNAL://kafka:9092,EXTERNAL://localhost:9094"
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT"
+        KAFKA_REPLICATION_FACTOR: 1
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        KAFKA_AUTO_CREATE_TOPICS_ENABLE: "False"
+      command: >
+              sh -c "((sleep 15
+              && echo 'CREATING_TOPIC: my-topic'
+              &&  kafka-topics --create --topic my-topic --partitions 2 --replication-factor 1 --bootstrap-server localhost:9092  
+              )&) && /etc/confluent/docker/run"
+      restart: "no"
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile.producer
+    depends_on:
+      - kafka
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.consumer
+    depends_on:
+      - kafka
